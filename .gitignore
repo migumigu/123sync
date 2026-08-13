@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# 运行时目录
+upload/
+delete/
+conf/settings.ini
+
+# 导出的镜像文件
+*.tar
+*.tar.gz
+123sync.tar.gz*
+
+# IDE / 系统
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.tmp
+
+# 日志
+*.log
+
+# WorkBuddy
+.workbuddy/

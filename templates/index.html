@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>123sync — 配置管理</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <div class="header-title">
+                    <h1>123sync</h1>
+                    <span class="header-sub">网盘同步工具 · 配置管理</span>
+                </div>
+                <div id="sync-badge" class="sync-badge ready">
+                    <span class="dot"></span>
+                    <span id="sync-badge-text">就绪</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="toast" class="toast hidden"></div>
+
+        <!-- 同步操作 -->
+        <section class="panel">
+            <div class="panel-body sync-panel">
+                <div class="sync-info">
+                    <h2>立即同步</h2>
+                    <p>手动触发一次全量同步。大文件优先秒传，小文件秒传失败后转为分片上传。</p>
+                </div>
+                <button id="force-sync" class="btn btn-primary">
+                    <span class="btn-label">强制同步</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- 同步规则 -->
+        <section class="panel" data-section="SyncRules">
+            <details open>
+                <summary class="panel-header">
+                    <span class="panel-title">同步规则</span>
+                    <span class="panel-desc">本地目录 → 网盘目录的映射</span>
+                    <span class="chevron"></span>
+                </summary>
+                <div class="panel-body">
+                    <div id="rules-container">
+                        {% for rule_key, rule_value in config.SyncRules.items() %}
+                        <div class="rule-row">
+                            <input type="text" class="input input-path input-mono" name="local_path"
+                                   placeholder="本地路径" value="{{ rule_value.split(',')[0].strip() }}">
+                            <span class="arrow">→</span>
+                            <input type="text" class="input input-path input-mono" name="pan_path"
+                                   placeholder="网盘路径" value="{{ rule_value.split(',')[1].strip() }}">
+                            <button type="button" class="btn-icon btn-danger remove-rule" title="删除规则">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M3 4h10M6 4V2.5h4V4M5 4l.5 9h5L11 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" id="add-rule" class="btn btn-ghost btn-sm">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        添加规则
+                    </button>
+                    <p class="hint">格式：本地路径 → 网盘路径。例如：upload/AAA → 我的备份/AAA</p>
+                    <div class="panel-actions">
+                        <button class="btn btn-primary save-section-btn" data-section="SyncRules">保存规则</button>
+                    </div>
+                </div>
+            </details>
+        </section>
+
+        <!-- 通用配置 -->
+        <section class="panel" data-section="General">
+            <details>
+                <summary class="panel-header">
+                    <span class="panel-title">通用配置</span>
+                    <span class="panel-desc">同步频率、文件阈值、冲突策略</span>
+                    <span class="chevron"></span>
+                </summary>
+                <div class="panel-body">
+                    <div class="field">
+                        <label for="seconds_upload_min_size">大文件阈值 (MB)</label>
+                        <input type="number" class="input" id="seconds_upload_min_size"
+                               name="seconds_upload_min_size"
+                               value="{{ config.General.seconds_upload_min_size }}" min="0" step="100">
+                        <span class="hint">大于此值的文件仅尝试秒传</span>
+                    </div>
+
+                    <div class="field">
+                        <label for="duplicate_handling">同名文件处理</label>
+                        <select class="input" id="duplicate_handling" name="duplicate_handling">
+                            <option value="0" {% if config.General.duplicate_handling == '0' %}selected{% endif %}>跳过</option>
+                            <option value="1" {% if config.General.duplicate_handling == '1' %}selected{% endif %}>保留两者</option>
+                            <option value="2" {% if config.General.duplicate_handling == '2' %}selected{% endif %}>替换</option>
+                            <option value="3" {% if config.General.duplicate_handling == '3' %}selected{% endif %}>保留较大的文件</option>
+                        </select>
+                        <span class="hint">网盘已有同名文件时的处理策略</span>
+                    </div>
+
+                    <div class="field">
+                        <label for="cron_expression">Cron 表达式</label>
+                        <input type="text" class="input input-mono" id="cron_expression"
+                               name="cron_expression"
+                               value="{{ config.General.cron_expression }}" placeholder="0 * * * *">
+                        <span class="hint">定时同步频率，默认每小时执行</span>
+                    </div>
+
+                    <div class="field">
+                        <label class="switch-label" for="force_upload_large_file">
+                            <input type="checkbox" id="force_upload_large_file"
+                                   name="force_upload_large_file"
+                                   {% if config.General.force_upload_large_file == 'true' %}checked{% endif %}>
+                            <span class="switch"></span>
+                            <span class="switch-text">强制同步时分片上传大文件</span>
+                        </label>
+                        <span class="hint">关闭：秒传失败直接跳过。开启：秒传失败后转为分片上传</span>
+                    </div>
+
+                    <div class="panel-actions">
+                        <button class="btn btn-primary save-section-btn" data-section="General">保存配置</button>
+                    </div>
+                </div>
+            </details>
+        </section>
+
+        <!-- 账号配置 -->
+        <section class="panel" data-section="Account">
+            <details>
+                <summary class="panel-header">
+                    <span class="panel-title">账号配置</span>
+                    <span class="panel-desc">修改后需重启服务生效</span>
+                    <span class="chevron"></span>
+                </summary>
+                <div class="panel-body">
+                    <div class="field-group-title">普通账号</div>
+                    <div class="field">
+                        <label for="passport">手机号 / 邮箱</label>
+                        <input type="text" class="input" id="passport" name="passport"
+                               value="{{ config.Account.passport }}">
+                    </div>
+                    <div class="field">
+                        <label for="password">密码</label>
+                        <input type="password" class="input" id="password" name="password"
+                               value="{{ config.Account.password }}">
+                    </div>
+
+                    <div class="field-group-title">开发者账号</div>
+                    <div class="field">
+                        <label for="client_id">Client ID</label>
+                        <input type="text" class="input input-mono" id="client_id" name="client_id"
+                               value="{{ config.Account.client_id }}">
+                    </div>
+                    <div class="field">
+                        <label for="client_secret">Client Secret</label>
+                        <input type="password" class="input input-mono" id="client_secret"
+                               name="client_secret" value="{{ config.Account.client_secret }}">
+                    </div>
+
+                    <p class="hint">两种登录方式二选一。开发者账号优先。</p>
+                    <div class="panel-actions">
+                        <button class="btn btn-primary save-section-btn" data-section="Account">保存账号</button>
+                    </div>
+                </div>
+            </details>
+        </section>
+
+        <footer class="site-footer">
+            <span>123sync · 123网盘同步工具</span>
+        </footer>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

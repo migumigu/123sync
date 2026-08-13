@@ -1,0 +1,65 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+  # 支持手动触发，便于发版时按需构建
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "构建原因（可选）"
+        required: false
+        default: "manual release"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Extract version from VERSION file
+        id: extract-version
+        run: |
+          if [ ! -f VERSION ]; then
+            echo "VERSION 文件不存在，使用 latest 作为版本号"
+            VERSION="latest"
+          else
+            VERSION=$(grep -E "^VERSION=" VERSION | head -n 1 | cut -d'=' -f2 | tr -d ' \r\n')
+            if [ -z "$VERSION" ]; then
+              VERSION="latest"
+            fi
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "📋 解析到的版本号: $VERSION"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          # PR 触发时只构建不推送，push 触发才推送
+          push: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ secrets.DOCKER_HUB_USERNAME }}/123sync:${{ steps.extract-version.outputs.VERSION }}
+            ${{ secrets.DOCKER_HUB_USERNAME }}/123sync:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
