@@ -23,7 +23,11 @@ _orig_complete_url = _p123client_client.complete_url
 
 def _patched_complete_url(path, base_url=_p123client_client.DEFAULT_BASE_URL):
     if isinstance(base_url, str):
-        base_url = base_url.replace("123pan.com", "123912.com").replace("123pan.cn", "123912.com")
+        # 主站/API 与开放平台域名已迁移到 123912.com（DNS 验证 123912.com、
+        # open-api.123912.com 均存在）；但登录域名 login.123pan.com 仍有效，
+        # login.123912.com 无 DNS 记录，故登录地址保持不变。
+        if "login.123pan.com" not in base_url:
+            base_url = base_url.replace("123pan.com", "123912.com").replace("123pan.cn", "123912.com")
     return _orig_complete_url(path, base_url)
 
 _p123client_client.complete_url = _patched_complete_url
