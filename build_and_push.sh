@@ -27,7 +27,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step()  { echo -e "${BLUE}[STEP]${NC} $1"; }
 
 # DockerHub 配置（可通过环境变量覆盖）
-DOCKER_HUB_USERNAME="${DOCKER_HUB_USERNAME:-migumigu}"
+DOCKER_HUB_USERNAME="${DOCKER_HUB_USERNAME:-aidedaijiayang}"
 IMAGE_NAME="123sync"
 PLATFORMS="linux/amd64,linux/arm64"
 

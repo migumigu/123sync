@@ -38,7 +38,7 @@
 version: "3"
 services:
   123sync:
-    image: migumigu/123sync:latest
+    image: aidedaijiayang/123sync:latest
     container_name: 123sync
     environment:
       - PUID=1000
@@ -67,7 +67,7 @@ docker run -d \
   -e PUID=1000 \
   -e PGID=100 \
   -e TZ=Asia/Shanghai \
-  migumigu/123sync:latest
+  aidedaijiayang/123sync:latest
 ```
 
 ### 3.3 本地构建并推送镜像（开发者）
@@ -77,7 +77,7 @@ docker run -d \
 #### 方式一：CI 自动发布（推荐）
 
 1. 在 GitHub 仓库 `Settings → Secrets and variables → Actions` 中添加两个 Secret：
-   - `DOCKER_HUB_USERNAME` — DockerHub 用户名
+   - `DOCKER_HUB_USERNAME` — DockerHub 用户名（即 `aidedaijiayang`）
    - `DOCKER_HUB_ACCESS_TOKEN` — DockerHub Access Token（不是登录密码）
 2. 修改 `VERSION` 文件中的版本号
 3. 推送到 `main` 分支，GitHub Actions 会自动构建 amd64+arm64 双架构镜像并推送至 DockerHub
@@ -90,7 +90,13 @@ docker run -d \
 ./build_and_push.sh 1.0.2        # 手动指定版本号
 ```
 
-> 本地构建依赖 Docker buildx（Docker Desktop 默认已启用）。
+> 本地构建依赖 Docker buildx（Docker Desktop 默认已启用）。镜像推送到 `aidedaijiayang/123sync`，支持 `latest` 与版本号双 tag。
+
+如已手动构建好镜像，也可直接推送：
+
+```bash
+docker push aidedaijiayang/123sync:tagname
+```
 
 
 ## 4. 使用方法
