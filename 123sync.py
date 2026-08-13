@@ -11,34 +11,6 @@ from datetime import datetime
 from croniter import croniter
 from p123client import P123Client
 
-# ======================== 123云盘域名迁移补丁 ========================
-# 123云盘已将域名由 123pan.com / 123pan.cn 迁移至 123912.com，
-# 但第三方依赖 p123client 的默认 base_url 仍为 123pan.com，且构造函数不接受
-# base_url 参数（默认值在导入时即已绑定，无法通过配置覆盖）。
-# 因此在运行时改写 p123client 唯一的 URL 构造函数 complete_url，将所有请求
-# 重定向到新域名。改动仅限本项目（随代码部署生效，重装 p123client 也不受影响）。
-import p123client.client as _p123client_client
-
-_orig_complete_url = _p123client_client.complete_url
-
-def _patched_complete_url(path, base_url=_p123client_client.DEFAULT_BASE_URL):
-    if isinstance(base_url, str):
-        # 主站/API 与开放平台域名已迁移到 123912.com（DNS 验证 123912.com、
-        # open-api.123912.com 均存在）；但登录域名 login.123pan.com 仍有效，
-        # login.123912.com 无 DNS 记录，故登录地址保持不变。
-        if "login.123pan.com" not in base_url:
-            base_url = base_url.replace("123pan.com", "123912.com").replace("123pan.cn", "123912.com")
-    return _orig_complete_url(path, base_url)
-
-_p123client_client.complete_url = _patched_complete_url
-
-# 推导 123 网盘当前生效的访问地址（迁移后域名），用于登录成功日志展示
-_PAN_LOGIN_ADDR = (
-    _p123client_client.DEFAULT_BASE_URL
-    .replace("123pan.com", "123912.com")
-    .replace("123pan.cn", "123912.com")
-    .split("/b")[0]
-)
 
 # 屏蔽 httpx / httpcore 的 HTTP 请求 INFO 日志（避免每个请求刷一行，污染日志）
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -206,7 +178,7 @@ class ClientManager:
                 return None
             
             self.last_login_time = datetime.now()
-            print(f"✅ 登录成功! 登录时间: {self.last_login_time.strftime('%Y-%m-%d %H:%M:%S')}  登录地址: {_PAN_LOGIN_ADDR}")
+            print(f"✅ 登录成功! 登录时间: {self.last_login_time.strftime('%Y-%m-%d %H:%M:%S')}  登录域名: login.123pan.com")
             return self.client
         except Exception as e:
             print(f"❌ 客户端登录失败: {str(e)}")
